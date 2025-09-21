@@ -19,18 +19,37 @@
         margin: 0;
         background: #f0fdf4;
       }
-      header,
-      .sub-header {
+      header {
         background: #fdf4e5;
-        color: white;
-        padding: 15px;
-        text-align: center;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 20px;
+      }
+      header img {
+        height: 50px;
+      }
+      .search-bar {
+        position: relative;
+      }
+      .search-bar input {
+        padding: 6px 30px 6px 10px;
+        border-radius: 20px;
+        border: 1px solid #ccc;
+      }
+      .search-bar i {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: gray;
       }
       .sub-header {
         background: #16a34a;
         color: white;
         font-size: 14px;
         padding: 4px;
+        text-align: center;
       }
       .filters {
         text-align: center;
@@ -164,11 +183,9 @@
         color: gray;
         font-size: 14px;
       }
-
       .footer-left p {
         margin: 0;
       }
-
       .footer-right a {
         margin-left: 15px;
         color: gray;
@@ -176,9 +193,8 @@
         text-decoration: none;
         transition: color 0.3s ease;
       }
-
       .footer-right a:hover {
-        color: #007bff; /* Change on hover */
+        color: #007bff;
       }
     </style>
   </head>
@@ -190,7 +206,16 @@
       </p>
     </div>
     <header>
-      <img src="prakitik_logo.png" alt="Prakitik Logo" style="height: 50px" />
+      <img src="prakitik_logo.png" alt="Prakitik Logo" />
+      <div class="search-bar">
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Search products..."
+          onkeyup="searchProducts()"
+        />
+        <i class="fas fa-search"></i>
+      </div>
     </header>
 
     <div id="filters" class="filters" style="display: none">
@@ -203,11 +228,11 @@
         Loading products...
       </div>
     </div>
+
     <footer class="footer">
       <div class="footer-left">
         <p>&copy; 2025 Prakitik. All rights reserved.</p>
       </div>
-
       <div class="footer-right">
         <a href="https://facebook.com" target="_blank"
           ><i class="fab fa-facebook-f"></i
@@ -224,11 +249,12 @@
         "https://script.google.com/macros/s/AKfycbwskjKskaLqd974-Lw_LSFSgbk9pbnDRbl3vG0eShpfaQ59JFX6swF0gmx0t8GqlPE-7w/exec";
       let products = [];
       let currentCategory = "all";
+      let searchQuery = "";
       const main = document.getElementById("main");
       const filterButtons = document.getElementById("filterButtons");
       const filtersDiv = document.getElementById("filters");
 
-      // normalize keys (trim spaces)
+      // normalize keys
       function normalizeKeys(obj) {
         const newObj = {};
         for (const key in obj) {
@@ -263,10 +289,23 @@
         renderProducts();
       }
 
+      function searchProducts() {
+        searchQuery = document
+          .getElementById("searchInput")
+          .value.toLowerCase()
+          .trim();
+        renderProducts();
+      }
+
       function getFilteredProducts() {
-        return currentCategory === "all"
-          ? products
-          : products.filter((p) => p.category === currentCategory);
+        return products.filter((p) => {
+          const matchesCategory =
+            currentCategory === "all" || p.category === currentCategory;
+          const matchesSearch =
+            p.title.toLowerCase().includes(searchQuery) ||
+            p.description.toLowerCase().includes(searchQuery);
+          return matchesCategory && matchesSearch;
+        });
       }
 
       function renderProducts() {
@@ -281,9 +320,8 @@
         .map(
           (p) => `
         <div class="card" onclick="showDetails(${p.id})">
-          <img src="${p.image}" alt="${
-            p.title
-          }" onerror="this.src='https://placehold.co/800?text=Image+Not+Found&font=roboto'">
+          <img src="${p.image}" alt="${p.title}"
+            onerror="this.src='https://placehold.co/800?text=Image+Not+Found&font=roboto'">
           <div class="card-body">
             <h3>${p.title}</h3>
             <p>${p.description?.slice(0, 60)}...</p>
@@ -300,17 +338,20 @@
       function showDetails(id) {
         const p = products.find((x) => x.id == id);
         const gallery = [p.image, p.image1, p.image2, p.image3].filter(Boolean);
+
+        history.pushState({ page: "details", id: id }, "", `#product-${id}`);
+
         main.innerHTML = `
       <div class="details">
         <button onclick="showHome()" style="margin-bottom:10px; background:none; border:none; color:#16a34a; cursor:pointer;">← Back</button>
-        <img id="mainImg" src="${p.image}" alt="${
-          p.title
-        }" onerror="this.src='https://placehold.co/800?text=Image+Not+Found&font=roboto'">
+        <img id="mainImg" src="${p.image}" alt="${p.title}"
+          onerror="this.src='https://placehold.co/800?text=Image+Not+Found&font=roboto'">
         <div class="gallery">
           ${gallery
             .map(
               (img) =>
-                `<img src="${img}" onclick="swapImage('${img}')" onerror="this.src='https://placehold.co/800?text=Image+Not+Found&font=roboto'">`
+                `<img src="${img}" onclick="swapImage('${img}')"
+                  onerror="this.src='https://placehold.co/800?text=Image+Not+Found&font=roboto'">`
             )
             .join("")}
         </div>
@@ -332,6 +373,7 @@
       }
 
       function showHome() {
+        history.pushState({ page: "home" }, "", "#home");
         filtersDiv.style.display = "block";
         generateFilters();
         renderProducts();
@@ -346,29 +388,40 @@
       }
 
       async function loadProducts() {
-        // Show loading state
         main.innerHTML = `
       <div class="loading">
         <div class="spinner"></div>
         Loading products...
-      </div>
-    `;
-
+      </div>`;
         try {
           const res = await fetch(API_URL);
           let data = await res.json();
-          products = data.map(normalizeKeys); // fix key spaces
+          products = data.map(normalizeKeys);
           generateFilters();
           renderProducts();
+          history.replaceState({ page: "home" }, "", "#home");
         } catch (error) {
           main.innerHTML = `
         <div class="loading" style="color: #dc2626;">
           <p>Error loading products. Please try again later.</p>
           <button onclick="loadProducts()" style="background:#16a34a; color:white; padding:10px 20px; border:none; border-radius:5px; cursor:pointer; margin-top:10px;">Retry</button>
-        </div>
-      `;
+        </div>`;
         }
       }
+
+      // Handle browser back/forward
+      window.onpopstate = function (event) {
+        if (event.state) {
+          if (event.state.page === "details") {
+            showDetails(event.state.id);
+          } else if (event.state.page === "home") {
+            showHome();
+          }
+        } else {
+          showHome();
+        }
+      };
+
       loadProducts();
     </script>
   </body>
