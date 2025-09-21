@@ -2,6 +2,11 @@
 <html lang="bn">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="fab_icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="fab_icon.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="fab_icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="fab_icon.png" />
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>prakitik - ঐতিহ্যে আভিজাত্য</title>
     <style>
@@ -257,10 +262,10 @@
         <div class="price" style="font-size:20px;">৳${
           p.discountPrice
         } <span class="old">৳${p.price}</span></div>
-        <p>📦 In Stock: ${p.stock}</p>
+        <p>In Stock: ${p.stock}</p>
         <button class="order-btn" onclick="orderWhatsApp(${
           p.id
-        })">🛒 Order via WhatsApp</button>
+        })">Order via WhatsApp</button>
       </div>`;
         filtersDiv.style.display = "none";
       }
@@ -278,9 +283,9 @@
       function orderWhatsApp(id) {
         const p = products.find((x) => x.id == id);
         const msg = encodeURIComponent(
-          `🛒 অর্ডার\n\nProduct: ${p.title}\nPrice: ৳${p.discountPrice}\nCategory: ${p.category}`
+          `অর্ডার\n\nProduct: ${p.title}\nPrice: ৳${p.discountPrice}\nCategory: ${p.category}`
         );
-        window.open(`https://wa.me/8801700000000?text=${msg}`, "_blank");
+        window.open(`https://wa.me/+8801752318257?text=${msg}`, "_blank");
       }
 
       async function loadProducts() {
