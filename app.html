@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="bn">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Village Store</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background: #f0fdf4;
+      }
+      header {
+        background: #fdf4e5;
+        color: white;
+        padding: 15px;
+        text-align: center;
+      }
+      .filters {
+        text-align: center;
+        margin: 20px 0;
+      }
+      .filter-btn {
+        background: #dcfce7;
+        border: 1px solid #16a34a;
+        color: #16a34a;
+        padding: 8px 16px;
+        border-radius: 20px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      .filter-btn.active,
+      .filter-btn:hover {
+        background: #16a34a;
+        color: white;
+      }
+      .grid {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: repeat(3, 1fr);
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      @media (max-width: 768px) {
+        .grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (max-width: 480px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+      }
+      .card img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+      }
+      .card-body {
+        padding: 15px;
+        flex: 1;
+      }
+      .price {
+        color: #16a34a;
+        font-weight: bold;
+      }
+      .old {
+        text-decoration: line-through;
+        color: gray;
+        font-size: 14px;
+        margin-left: 8px;
+      }
+      .details {
+        padding: 20px;
+        max-width: 900px;
+        margin: auto;
+      }
+      .details img {
+        width: 100%;
+        max-height: 400px;
+        object-fit: cover;
+        border-radius: 10px;
+      }
+      .gallery {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+        overflow-x: auto;
+      }
+      .gallery img {
+        width: 100px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .order-btn {
+        background: #16a34a;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        margin-top: 20px;
+        cursor: pointer;
+      }
+      .order-btn:hover {
+        background: #15803d;
+      }
+      .loading {
+        text-align: center;
+        padding: 50px;
+        font-size: 18px;
+        color: #16a34a;
+      }
+      .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #16a34a;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <img src="prakitik_logo.png" alt="Prakitik Logo" style="height: 50px" />
+    </header>
+
+    <div id="filters" class="filters" style="display: none">
+      <div id="filterButtons"></div>
+    </div>
+
+    <div id="main">
+      <div class="loading">
+        <div class="spinner"></div>
+        Loading products...
+      </div>
+    </div>
+
+    <script>
+      const API_URL =
+        "https://script.google.com/macros/s/AKfycbwskjKskaLqd974-Lw_LSFSgbk9pbnDRbl3vG0eShpfaQ59JFX6swF0gmx0t8GqlPE-7w/exec";
+      let products = [];
+      let currentCategory = "all";
+      const main = document.getElementById("main");
+      const filterButtons = document.getElementById("filterButtons");
+      const filtersDiv = document.getElementById("filters");
+
+      // normalize keys (trim spaces)
+      function normalizeKeys(obj) {
+        const newObj = {};
+        for (const key in obj) {
+          newObj[key.trim()] = obj[key];
+        }
+        return newObj;
+      }
+
+      function generateFilters() {
+        const categories = [...new Set(products.map((p) => p.category))];
+        filterButtons.innerHTML =
+          `<button class="filter-btn ${
+            currentCategory === "all" ? "active" : ""
+          }" onclick="filterByCategory('all', event)">All</button>` +
+          categories
+            .map(
+              (cat) =>
+                `<button class="filter-btn ${
+                  currentCategory === cat ? "active" : ""
+                }" onclick="filterByCategory('${cat}', event)">${cat}</button>`
+            )
+            .join("");
+        filtersDiv.style.display = "block";
+      }
+
+      function filterByCategory(cat, ev) {
+        currentCategory = cat;
+        document
+          .querySelectorAll(".filter-btn")
+          .forEach((btn) => btn.classList.remove("active"));
+        ev.target.classList.add("active");
+        renderProducts();
+      }
+
+      function getFilteredProducts() {
+        return currentCategory === "all"
+          ? products
+          : products.filter((p) => p.category === currentCategory);
+      }
+
+      function renderProducts() {
+        const items = getFilteredProducts();
+        if (items.length === 0) {
+          main.innerHTML =
+            "<p style='text-align:center;'>কোন পণ্য পাওয়া যায়নি।</p>";
+          return;
+        }
+        main.innerHTML = `<div class="grid">
+      ${items
+        .map(
+          (p) => `
+        <div class="card" onclick="showDetails(${p.id})">
+          <img src="${p.image}" alt="${
+            p.title
+          }" onerror="this.src='https://placehold.co/800?text=Image+Not+Found&font=roboto'">
+          <div class="card-body">
+            <h3>${p.title}</h3>
+            <p>${p.description?.slice(0, 60)}...</p>
+            <div class="price">৳${p.discountPrice} <span class="old">৳${
+            p.price
+          }</span></div>
+          </div>
+        </div>`
+        )
+        .join("")}
+    </div>`;
+      }
+
+      function showDetails(id) {
+        const p = products.find((x) => x.id == id);
+        const gallery = [p.image, p.image1, p.image2, p.image3].filter(Boolean);
+        main.innerHTML = `
+      <div class="details">
+        <button onclick="showHome()" style="margin-bottom:10px; background:none; border:none; color:#16a34a; cursor:pointer;">← Back</button>
+        <img id="mainImg" src="${p.image}" alt="${
+          p.title
+        }" onerror="this.src='https://placehold.co/800?text=Image+Not+Found&font=roboto'">
+        <div class="gallery">
+          ${gallery
+            .map(
+              (img) =>
+                `<img src="${img}" onclick="swapImage('${img}')" onerror="this.src='https://placehold.co/800?text=Image+Not+Found&font=roboto'">`
+            )
+            .join("")}
+        </div>
+        <h2>${p.title}</h2>
+        <p>${p.description}</p>
+        <div class="price" style="font-size:20px;">৳${
+          p.discountPrice
+        } <span class="old">৳${p.price}</span></div>
+        <p>📦 In Stock: ${p.stock}</p>
+        <button class="order-btn" onclick="orderWhatsApp(${
+          p.id
+        })">🛒 Order via WhatsApp</button>
+      </div>`;
+        filtersDiv.style.display = "none";
+      }
+
+      function swapImage(src) {
+        document.getElementById("mainImg").src = src;
+      }
+
+      function showHome() {
+        filtersDiv.style.display = "block";
+        generateFilters();
+        renderProducts();
+      }
+
+      function orderWhatsApp(id) {
+        const p = products.find((x) => x.id == id);
+        const msg = encodeURIComponent(
+          `🛒 অর্ডার\n\nProduct: ${p.title}\nPrice: ৳${p.discountPrice}\nCategory: ${p.category}`
+        );
+        window.open(`https://wa.me/8801700000000?text=${msg}`, "_blank");
+      }
+
+      async function loadProducts() {
+        // Show loading state
+        main.innerHTML = `
+      <div class="loading">
+        <div class="spinner"></div>
+        Loading products...
+      </div>
+    `;
+
+        try {
+          const res = await fetch(API_URL);
+          let data = await res.json();
+          products = data.map(normalizeKeys); // fix key spaces
+          generateFilters();
+          renderProducts();
+        } catch (error) {
+          main.innerHTML = `
+        <div class="loading" style="color: #dc2626;">
+          <p>Error loading products. Please try again later.</p>
+          <button onclick="loadProducts()" style="background:#16a34a; color:white; padding:10px 20px; border:none; border-radius:5px; cursor:pointer; margin-top:10px;">Retry</button>
+        </div>
+      `;
+        }
+      }
+      loadProducts();
+    </script>
+  </body>
+</html>
